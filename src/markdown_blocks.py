@@ -1,6 +1,6 @@
 from enum import Enum
 
-from htmlnode import HTMLNode, ParentNode
+from htmlnode import ParentNode
 from inline_markdown import text_to_textnodes
 from textnode import TextNode, TextType, text_node_to_html_node
 
@@ -17,7 +17,7 @@ class BlockType(Enum):
 def block_to_block_type(markdown_block: str):
     lines = markdown_block.split("\n")
 
-    if markdown_block.startswith("# "):
+    if markdown_block.startswith(("# ", "## ", "### ", "#### ", "##### ", "###### ")):
         return BlockType.HEADING
 
     if markdown_block.startswith("```\n") and markdown_block.endswith("```"):
@@ -69,10 +69,17 @@ def paragraph_to_html_node(block):
 
 
 def heading_to_html_node(block):
-    level = block.split(" ")[0].count("#")
-    trimmed_string = block[level:].strip()
-    inline_children = text_to_children(trimmed_string)
-    return ParentNode(tag=f"h{level}", children=inline_children)
+    level = 0
+    for char in block:
+        if char == "#":
+            level += 1
+        else:
+            break
+    if level + 1 >= len(block):
+        raise ValueError(f"invalid heading level: {level}")
+    text = block[level + 1 :]
+    children = text_to_children(text)
+    return ParentNode(f"h{level}", children)
 
 
 def quote_to_html_node(block):
@@ -111,7 +118,7 @@ def ulist_to_html_node(block):
         else:
             content = line
         inline_children = text_to_children(content)
-        li_nodes.append(HTMLNode("li", children=inline_children))
+        li_nodes.append(ParentNode("li", children=inline_children))
     return ParentNode(tag="ul", children=li_nodes)
 
 
@@ -127,7 +134,7 @@ def olist_to_html_node(block):
         else:
             content = line
         inline_children = text_to_children(content)
-        li_nodes.append(HTMLNode("li", children=inline_children))
+        li_nodes.append(ParentNode("li", children=inline_children))
     return ParentNode(tag="ol", children=li_nodes)
 
 
